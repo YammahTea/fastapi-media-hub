@@ -20,14 +20,14 @@ class Post(Base):
     # so this part tells it that we are making a data model
     __tablename__ = "posts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4())
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     #UUID(as_uuid=True) means: we will generate a random ID for each time we create a post
 
     caption = Column(Text) #data type of the column
     url = Column(String, nullable=False)
     file_type = Column(String, nullable=False)
     file_name = Column(String, nullable=False)
-    creation_date = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 """Creating the database"""

@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, Depends
 from app.schemas import PostCreate, PostResponse
 from app.db import Post, create_db_and_tables, get_async_session
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
+from sqlalchemy import select
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -13,59 +15,44 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan) #it will run lifespan function as soon as the application gets started
 
-text_posts = {
-    1: {
-        "title": "My first reel",
-        "description": "I love this app! It's so much faster than the other ones."
-    },
-    2: {
-        "title": "Japan Trip 2026",
-        "description": "Can't wait to visit Tokyo and eat ramen in Shibuya!"
-    },
-    3: {
-        "title": "Coding Late Night",
-        "description": "Debugging FastAPI at 2 AM. The grind never stops. ☕"
-    },
-    4: {
-        "title": "Gym Progress",
-        "description": "Hit a new PR on deadlifts today. Feeling strong."
-    },
-    5: {
-        "title": "Python vs Go",
-        "description": "Still deciding which one to use for my backend. Thoughts?"
-    },
-    6: {
-        "title": "Weekend Vibes",
-        "description": "Just relaxing and watching movies."
-    }
-}
-"""
-GET operations:
-posts
-post by id
-"""
-@app.get("/posts")
-def get_posts(limit: int = None):
-    if limit and (limit < len(text_posts)):
-        return list(text_posts.values())[:limit]
-    return text_posts
+"""Make new post"""
+@app.post("/upload")
+async def upload_file(
+        file: UploadFile = File(...), #To receive a file object to this endpoint
+        caption: str = Form(""),
+        session: AsyncSession = Depends(get_async_session)
+):
+    post = Post(
+        caption = caption,
+        url= "dummy url",
+        file_type = "GIF",
+        file_name = "cat"
+    )
 
-@app.get("/posts/{id}")
-def get_post_with_id(id: int) -> PostResponse:
-    if id not in text_posts.keys():
-        raise HTTPException(status_code=404, detail="Post not found. The link may be broken, or the profile may have been removed.")
+    session.add(post)
+    await session.commit()
+    await session.refresh(post)
+    return post
 
-    return text_posts.get(id)
+"""Get all posts"""
+@app.get("/fyp")
+async def get_fyp(
+        session: AsyncSession = Depends(get_async_session)
+):
+    result = await session.execute(select(Post).order_by(Post.created_at.desc()))
 
-"""
-POST operations:
-create_post
-"""
+    posts = [row[0] for row in result.all()]
 
-@app.post("/posts")
-def create_post(post: PostCreate) -> PostResponse: #FastApi will also do the data validation in "post" object, it will raise an error otherwise
-    new_post = {"title": post.title, "description": post.description}
-    text_posts[max(text_posts.keys())  + 1] = new_post
-    return new_post
+    posts_data = []
+    for post in posts:
+        posts_data.append({
 
+            "id": str(post.id),
+            "caption": post.caption,
+            "url": post.url,
+            "file_type": post.file_type,
+            "file_name": post.file_name,
+            "created_at": post.created_at.isoformat() #YY-MM-DD
+        })
 
+    return {"posts": posts_data}
