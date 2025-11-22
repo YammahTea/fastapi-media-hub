@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from App.schemas import CreatePost
+from app.schemas import PostCreate, PostResponse
 
 app = FastAPI()
 
@@ -41,7 +41,7 @@ def get_posts(limit: int = None):
     return text_posts
 
 @app.get("/posts/{id}")
-def get_post_with_id(id: int):
+def get_post_with_id(id: int) -> PostResponse:
     if id not in text_posts.keys():
         raise HTTPException(status_code=404, detail="Post not found. The link may be broken, or the profile may have been removed.")
 
@@ -53,7 +53,7 @@ create_post
 """
 
 @app.post("/posts")
-def create_post(post: CreatePost): #FastApi will also do the data validation in "post" object, it will raise an error otherwise
+def create_post(post: PostCreate) -> PostResponse: #FastApi will also do the data validation in "post" object, it will raise an error otherwise
     new_post = {"title": post.title, "description": post.description}
     text_posts[max(text_posts.keys())  + 1] = new_post
     return new_post

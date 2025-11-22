@@ -1,5 +1,9 @@
 from pydantic import BaseModel
 
-class CreatePost(BaseModel):
+class PostCreate(BaseModel):
+    title: str
+    description: str
+
+class PostResponse(BaseModel):
     title: str
     description: str
