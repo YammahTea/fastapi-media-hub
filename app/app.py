@@ -46,24 +46,24 @@ async def upload_file(
             shutil.copyfileobj(file.file, temp_file)
 
 
-        upload_result = imageKit.upload_file(
-
-            file = open(temp_file_path, "rb"),
-            file_name=file.filename,
-            options=UploadFileRequestOptions(
-                use_unique_file_name=True,
-                tags=["backend-upload"]
+        with open(temp_file_path, "rb") as f:
+            upload_result = imageKit.upload_file(
+                file=f,
+                file_name=file.filename,
+                options=UploadFileRequestOptions(
+                    use_unique_file_name=True,
+                    tags=["backend-upload"]
+                )
             )
-        )
 
         if upload_result.response_metadata.http_status_code == 200:
 
             post = Post(
-                user_id= user.id,
-                caption = caption,
-                url= upload_result.url,
-                file_type = "Video" if file.content_type.startswith("video/") else "Image",
-                file_name = upload_result.name
+                user_id=user.id,
+                caption=caption,
+                url=upload_result.url,
+                file_type="Video" if file.content_type.startswith("video/") else "Image",
+                file_name=upload_result.name
             )
 
             session.add(post)
@@ -123,9 +123,10 @@ async def delete_post(post_id: str,  session: AsyncSession = Depends(get_async_s
         post = result.scalars().first() # just not to deal with object returned
 
         if not post:
-            raise HTTPException(status_code= 404, detail="Post not found")
+            raise HTTPException(status_code=404, detail="Post not found")
 
-        if post.user_id == user.id:
+        # Only allow the owner to delete their post
+        if post.user_id != user.id:
             raise HTTPException(status_code=403, detail="You don't have permission to delete this post")
 
         await session.delete(post)
