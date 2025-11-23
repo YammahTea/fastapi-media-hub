@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan) #it will run lifespan function as soon as the application gets started
 
 """Make new post"""
+
 @app.post("/upload")
 async def upload_file(
         file: UploadFile = File(...), #To receive a file object to this endpoint
@@ -67,6 +68,7 @@ async def upload_file(
 
 
 """Get all posts"""
+
 @app.get("/fyp")
 async def get_fyp(
         session: AsyncSession = Depends(get_async_session)
@@ -88,3 +90,26 @@ async def get_fyp(
         })
 
     return {"posts": posts_data}
+
+
+"""Delete post by id"""
+
+@app.delete("/posts/{post_id}")
+async def delete_post(post_id: str,  session: AsyncSession = Depends(get_async_session)):
+
+    try:
+        post_uuid = uuid.UUID(post_id) # convert the str to object to use it in the where statement
+
+        result = await session.execute(select(Post).where(Post.id == post_uuid))
+        post = result.scalars().first() # just not to deal with object returned
+
+        if not post:
+            raise HTTPException(status_code= 404, detail="Post not found")
+
+        await session.delete(post)
+        await session.commit()
+
+        return {"Success": True, "message": "Post has been deleted successfully"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
