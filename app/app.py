@@ -90,6 +90,10 @@ async def get_fyp(
     result = await session.execute(select(Post).order_by(Post.created_at.desc()))
     posts = [row[0] for row in result.all()]
 
+    result = await session.execute(select(User))
+    users = [row[0] for row in result.all()]
+    user_dict = {u.id: u.email for u in users}
+
     posts_data = []
     for post in posts:
         posts_data.append({
@@ -101,7 +105,8 @@ async def get_fyp(
             "file_type": post.file_type,
             "file_name": post.file_name,
             "created_at": post.created_at.isoformat(), #YY-MM-DD
-            "is_owner": post.user_id == user.id
+            "is_owner": post.user_id == user.id,
+            "email": user_dict.get(post.user_id, "Unknown")
         })
 
     return {"posts": posts_data}
